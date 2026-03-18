@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>口译助手</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F5F3EF;
+  --surface: #FFFFFF;
+  --border: #E0DDD8;
+  --ink: #1A1917;
+  --ink2: #6B6860;
+  --ink3: #A8A59F;
+  --accent: #D85A30;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Noto Serif SC', serif;
+}
+
+body {
+  font-family: var(--serif);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+header {
+  width: 100%;
+  max-width: 600px;
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.logo { font-size: 1.15rem; font-weight: 400; letter-spacing: 0.06em; }
+.tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 7px;
+  letter-spacing: 0.1em;
+}
+
+.main { width: 100%; max-width: 600px; padding: 0 1.25rem; }
+
+.dir-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.dir-label { display: flex; align-items: center; gap: 10px; }
+.dir-pill {
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+}
+.dir-arrow { color: var(--ink3); font-family: var(--mono); }
+.flip-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink2);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 4px 12px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: background 0.15s;
+}
+.flip-btn:hover { background: var(--surface); }
+
+.error-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  background: #FDF0EB;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 9px 14px;
+  margin-bottom: 1rem;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+.error-bar.show { display: flex; }
+.error-close { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 16px; line-height: 1; padding: 0 0 0 10px; }
+
+.mic-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.75rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mic-wrap { position: relative; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; }
+
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+.ring1 { width: 96px; height: 96px; }
+.ring2 { width: 120px; height: 120px; }
+.recording .ring1 { animation: pulse 2s ease-out infinite; }
+.recording .ring2 { animation: pulse 2s ease-out infinite 0.55s; }
+@keyframes pulse { 0%{opacity:.6;transform:scale(.88)} 100%{opacity:0;transform:scale(1.2)} }
+
+.mic-btn {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  border: none;
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  transition: background 0.2s;
+}
+.mic-btn.recording { background: var(--accent); }
+.mic-btn:active { transform: scale(0.95); }
+
+.mic-status {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink3);
+  letter-spacing: 0.06em;
+}
+.mic-status.recording { color: var(--accent); }
+
+.interim-box {
+  width: 100%;
+  min-height: 52px;
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink3);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.interim-box.has-text { color: var(--ink); text-align: left; justify-content: flex-start; }
+
+.latest-card {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.seg-src {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink3);
+  line-height: 1.6;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.seg-tgt { font-size: 19px; line-height: 1.7; font-weight: 300; }
+.seg-loading { font-family: var(--mono); font-size: 12px; color: var(--ink3); }
+
+@keyframes dotbounce { 0%,80%,100%{opacity:.2;transform:scale(.8)} 40%{opacity:1;transform:scale(1)} }
+.dot span { display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--ink3); margin:0 2px; animation:dotbounce 1.2s ease-in-out infinite; }
+.dot span:nth-child(2){animation-delay:.2s}
+.dot span:nth-child(3){animation-delay:.4s}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--ink3);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+.empty-state svg { display: block; margin: 0 auto 12px; opacity: 0.25; }
+
+.hist-header {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 1.5rem 0 10px;
+  display: flex;
+  justify-content: space-between;
+}
+.clear-btn {
+  background: none; border: none;
+  font-family: var(--mono); font-size: 10px;
+  color: var(--ink3); cursor: pointer; letter-spacing: 0.08em;
+}
+.clear-btn:hover { color: var(--ink2); }
+
+.hist-item {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 13px;
+  margin-bottom: 7px;
+  transition: opacity 0.2s;
+}
+.hist-src { font-family: var(--mono); font-size: 11px; color: var(--ink3); margin-bottom: 4px; }
+.hist-tgt { font-size: 13px; color: var(--ink2); line-height: 1.6; }
+
+footer {
+  max-width: 600px;
+  width: 100%;
+  padding: 1.5rem 1.25rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink3);
+  display: flex;
+  justify-content: space-between;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">口译助手</span>
+  <span class="tag">MVP · Chrome only</span>
+</header>
+
+<div class="main">
+
+  <div class="dir-bar">
+    <div class="dir-label">
+      <span class="dir-pill" id="srcLang">中文</span>
+      <span class="dir-arrow">→</span>
+      <span class="dir-pill" id="tgtLang">English</span>
+    </div>
+    <button class="flip-btn" onclick="flipLang()">↕ 切换方向</button>
+  </div>
+
+  <div class="error-bar" id="errorBar">
+    <span id="errorMsg"></span>
+    <button class="error-close" onclick="hideError()">×</button>
+  </div>
+
+  <div class="mic-section">
+    <div class="mic-wrap" id="micWrap">
+      <div class="ring ring1"></div>
+      <div class="ring ring2"></div>
+      <button class="mic-btn" id="micBtn" onclick="toggleRec()">
+        <svg id="iconIdle" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2" width="6" height="12" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0"/>
+          <line x1="12" y1="19" x2="12" y2="22"/>
+          <line x1="8" y1="22" x2="16" y2="22"/>
+        </svg>
+        <svg id="iconRec" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" style="display:none">
+          <rect x="5" y="5" width="14" height="14" rx="3"/>
+        </svg>
+      </button>
+    </div>
+    <div class="mic-status" id="micStatus">点击开始录音</div>
+    <div class="interim-box" id="interimBox">请说普通话</div>
+  </div>
+
+  <div class="latest-card" id="latestCard">
+    <div class="seg-src" id="latestSrc"></div>
+    <div id="latestTgt"></div>
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <rect x="9" y="2" width="6" height="12" rx="3"/>
+      <path d="M5 10a7 7 0 0 0 14 0"/>
+      <line x1="12" y1="19" x2="12" y2="22"/>
+      <line x1="8" y1="22" x2="16" y2="22"/>
+    </svg>
+    按下麦克风，开始口译
+  </div>
+
+  <div id="histSection" style="display:none">
+    <div class="hist-header">
+      <span>历史记录</span>
+      <button class="clear-btn" onclick="clearAll()">清除</button>
+    </div>
+    <div id="histList"></div>
+  </div>
+
+</div>
+
+<footer>
+  <span>ASR · Web Speech API</span>
+  <span>翻译 · Claude API</span>
+</footer>
+
+<script>
+let isZh = true, isRec = false, recRef = null, segs = [];
+
+async function callTranslate(text) {
+  const res = await fetch("/api/translate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, isZh }),
+  });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const d = await res.json();
+  if (d.error) throw new Error(d.error);
+  return d.translation;
+}
+
+function addSeg(src) {
+  if (!src.trim()) return;
+  const id = Date.now() + Math.random();
+  segs.unshift({ id, src, tgt: "", loading: true });
+  render();
+  callTranslate(src)
+    .then(tgt => { const s = segs.find(x => x.id === id); if (s) { s.tgt = tgt; s.loading = false; } render(); })
+    .catch(e => { const s = segs.find(x => x.id === id); if (s) { s.tgt = "⚠ " + e.message; s.loading = false; } render(); });
+}
+
+function render() {
+  const empty = document.getElementById("emptyState");
+  const card = document.getElementById("latestCard");
+  const hist = document.getElementById("histSection");
+
+  if (!segs.length) { empty.style.display = "block"; card.style.display = "none"; hist.style.display = "none"; return; }
+  empty.style.display = "none";
+
+  const s = segs[0];
+  card.style.display = "block";
+  document.getElementById("latestSrc").textContent = s.src;
+  const tgtEl = document.getElementById("latestTgt");
+  tgtEl.className = s.loading ? "seg-loading" : "seg-tgt";
+  tgtEl.innerHTML = s.loading
+    ? '翻译中 <span class="dot"><span></span><span></span><span></span></span>'
+    : esc(s.tgt);
+
+  const h = segs.slice(1);
+  if (h.length) {
+    hist.style.display = "block";
+    document.getElementById("histList").innerHTML = h.map((seg, i) =>
+      `<div class="hist-item" style="opacity:${Math.max(0.3, 1 - i * 0.15).toFixed(2)}">
+        <div class="hist-src">${esc(seg.src)}</div>
+        <div class="hist-tgt">${seg.loading ? "…" : esc(seg.tgt)}</div>
+      </div>`
+    ).join("");
+  } else {
+    hist.style.display = "none";
+  }
+}
+
+function esc(s) { return (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function showError(msg) {
+  document.getElementById("errorMsg").textContent = msg;
+  document.getElementById("errorBar").classList.add("show");
+}
+function hideError() { document.getElementById("errorBar").classList.remove("show"); }
+
+function setRec(on) {
+  isRec = on;
+  const wrap = document.getElementById("micWrap");
+  const btn = document.getElementById("micBtn");
+  const status = document.getElementById("micStatus");
+  wrap.classList.toggle("recording", on);
+  btn.classList.toggle("recording", on);
+  status.classList.toggle("recording", on);
+  status.textContent = on ? "● 正在聆听…" : "点击开始录音";
+  document.getElementById("iconIdle").style.display = on ? "none" : "";
+  document.getElementById("iconRec").style.display = on ? "" : "none";
+}
+
+function setInterim(t) {
+  const el = document.getElementById("interimBox");
+  if (t) { el.textContent = t; el.classList.add("has-text"); }
+  else { el.textContent = isZh ? "请说普通话" : "Please speak in English"; el.classList.remove("has-text"); }
+}
+
+function start() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showError("请使用 Chrome 浏览器 · Chrome required"); return; }
+  const r = new SR();
+  r.lang = isZh ? "zh-CN" : "en-US";
+  r.continuous = true;
+  r.interimResults = true;
+  r.onresult = e => {
+    let tmp = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) { addSeg(e.results[i][0].transcript); setInterim(""); }
+      else tmp += e.results[i][0].transcript;
+    }
+    if (tmp) setInterim(tmp);
+  };
+  r.onerror = e => {
+    if (e.error === "not-allowed") { showError("麦克风权限被拒绝，请在地址栏允许麦克风访问后刷新页面"); stop(); }
+    else if (e.error === "no-speech") { /* 静默，不弹错误 */ }
+    else { showError("语音识别错误：" + e.error); }
+  };
+  r.onend = () => { if (recRef) try { recRef.start(); } catch(_) {} };
+  r.start();
+  recRef = r;
+  setRec(true);
+  hideError();
+}
+
+function stop() {
+  const r = recRef; recRef = null;
+  if (r) r.stop();
+  setRec(false); setInterim("");
+}
+
+function toggleRec() { isRec ? stop() : start(); }
+
+function flipLang() {
+  stop(); isZh = !isZh; segs = [];
+  document.getElementById("srcLang").textContent = isZh ? "中文" : "English";
+  document.getElementById("tgtLang").textContent = isZh ? "English" : "中文";
+  setInterim(""); render(); hideError();
+}
+
+function clearAll() { segs = []; render(); }
+</script>
+</body>
+</html>

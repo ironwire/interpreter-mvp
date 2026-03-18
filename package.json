@@ -1,0 +1,6 @@
+{
+  "name": "interpreter-mvp",
+  "version": "1.0.0",
+  "description": "Consecutive interpretation assistant powered by Claude",
+  "engines": { "node": ">=18" }
+}
